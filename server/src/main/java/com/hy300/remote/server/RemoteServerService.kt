@@ -15,11 +15,13 @@ import java.net.InetSocketAddress
 import java.security.SecureRandom
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import kotlin.concurrent.thread
 
 class RemoteServerService : Service() {
     private val pairCode = (100000..999999).random().toString().also { currentPairCode = it }
     private val tokens = mutableMapOf<String, Instant>()
     private lateinit var socket: RemoteSocket
+    private val commands by lazy { ShizukuCommandExecutor(this) }
     private var nsd: NsdManager? = null
     private var registration: NsdManager.RegistrationListener? = null
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int { createChannel(); startForeground(1, notification()); if (!::socket.isInitialized) { socket = RemoteSocket(); socket.start(); registerNsd() }; return START_STICKY }
@@ -36,7 +38,7 @@ class RemoteServerService : Service() {
     private inner class RemoteSocket : WebSocketServer(InetSocketAddress(7300)) {
         private var active: WebSocket? = null
         override fun onOpen(conn: WebSocket, handshake: ClientHandshake) = Unit
-        override fun onClose(conn: WebSocket, code: Int, reason: String, remote: Boolean) { if (active == conn) { active = null; RemoteAccessibilityService.instance?.removeCursor() } }
+        override fun onClose(conn: WebSocket, code: Int, reason: String, remote: Boolean) { if (active == conn) { active = null; RemoteAccessibilityService.instance?.hideCursorAfterDisconnect() } }
         override fun onMessage(conn: WebSocket, message: String) {
             val o = runCatching { Json.parseToJsonElement(message).jsonObject }.getOrNull() ?: return
             val event = o["event"]?.jsonPrimitive?.content ?: return
@@ -49,8 +51,9 @@ class RemoteServerService : Service() {
                 "pointer_click" -> a?.tap(o["action"]?.jsonPrimitive?.content == "long")
                 "pointer_long_press" -> a?.tap(true)
                 "pointer_scroll" -> a?.scroll(o.float("delta"))
-                "text_input" -> a?.setFocusedText(o["text"]?.jsonPrimitive?.content.orEmpty())
-                "special_key" -> a?.global(o["key"]?.jsonPrimitive?.content.orEmpty())
+                "text_input" -> { val text = o["text"]?.jsonPrimitive?.content.orEmpty(); thread { if (!commands.available) a?.setFocusedText(text) else commands.text(text) } }
+                "key_event" -> { val key = o["keycode"]?.jsonPrimitive?.intOrNull ?: return; thread { if (commands.available) commands.keyEvent(key) } }
+                "special_key" -> { val key = o["key"]?.jsonPrimitive?.content.orEmpty(); if (!a?.global(key).orFalse()) thread { if (commands.available) commands.special(key) } }
                 "sync" -> a?.sync()?.let { conn.send("{\"event\":\"sync_response\",\"cursor_x\":${it[0]},\"cursor_y\":${it[1]},\"screen_width\":${it[2]},\"screen_height\":${it[3]}}") }
                 "ping" -> conn.send(json("pong"))
             }
@@ -59,6 +62,7 @@ class RemoteServerService : Service() {
         override fun onStart() = Unit
     }
     private fun JsonObject.float(name: String) = this[name]?.jsonPrimitive?.floatOrNull ?: 0f
+    private fun Boolean?.orFalse() = this == true
     private fun preferences() = getSharedPreferences("auth_tokens", Context.MODE_PRIVATE)
     private fun json(event: String, vararg fields: Pair<String, String>) = buildJsonObject { put("event", event); fields.forEach { put(it.first, it.second) } }.toString()
     private fun token() = ByteArray(24).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }

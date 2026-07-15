@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <application android:theme="@style/Theme.HY300Remote" android:label="HY300 Remote Server" android:allowBackup="false">
         <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
         <service android:name=".RemoteServerService" android:foregroundServiceType="dataSync" android:exported="false" />

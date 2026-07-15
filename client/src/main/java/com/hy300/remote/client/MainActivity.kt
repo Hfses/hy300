@@ -17,16 +17,19 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() { override fun onCreate(state: Bundle?) { super.onCreate(state); setContent { RemoteScreen() } } }
 
 @Composable private fun RemoteScreen() {
     var host by remember { mutableStateOf("") }; var code by remember { mutableStateOf("") }; var text by remember { mutableStateOf("") }; var status by remember { mutableStateOf("Desconectado") }
-    val remote = remember { RemoteConnection(LocalContext.current) { status = it } }; val scope = rememberCoroutineScope()
-    DisposableEffect(Unit) { onDispose { remote.close() } }
+    val discovered = remember { mutableStateListOf<ProjectorEndpoint>() }
+    val context = LocalContext.current
+    val remote = remember { RemoteConnection(context) { status = it } }
+    val discovery = remember { ProjectorDiscovery(context, { endpoint -> if (discovered.none { it.host == endpoint.host && it.port == endpoint.port }) discovered += endpoint }, { status = it }) }
+    DisposableEffect(Unit) { discovery.start(); onDispose { discovery.stop(); remote.close() } }
     MaterialTheme { Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("HY300 Remote", style = MaterialTheme.typography.headlineSmall); Text(status)
+        if (discovered.isNotEmpty()) { Text("Projetores encontrados"); discovered.forEach { endpoint -> AssistChip(onClick = { host = "${endpoint.host}:${endpoint.port}" }, label = { Text("${endpoint.model} — ${endpoint.host}") }) } }
         OutlinedTextField(host, { host = it }, label = { Text("IP:porta (ex.: 192.168.1.5:7300)") }, modifier = Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button({ remote.connect(host) }) { Text("Conectar") }; OutlinedTextField(code, { code = it }, label = { Text("Código") }, modifier = Modifier.weight(1f)); Button({ remote.pair(code) }) { Text("Parear") } }
         Text("Touchpad")

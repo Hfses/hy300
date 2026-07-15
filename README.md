@@ -7,7 +7,7 @@ Dois aplicativos Android na mesma rede local:
 
 ## Estado deste repositório
 
-Este é um MVP de validação de arquitetura, ainda não a versão final do produto. Ele implementa WebSocket, pareamento com token persistido e expiração de 30 dias, anúncio NSD no servidor, heartbeat/reconexão no cliente, touchpad e cursor/gestos via Accessibility Service. O cliente ainda oferece conexão manual por IP:porta; a seleção automática de serviços NSD, Shizuku e gestos multi-toque precisam ser concluídos e testados no hardware.
+Este é um MVP de validação de arquitetura, ainda não a versão final do produto. Ele implementa WebSocket, pareamento com token persistido e expiração de 30 dias, anúncio e descoberta NSD, heartbeat/reconexão no cliente, touchpad e cursor/gestos via Accessibility Service. A tela do cliente lista os projetores descobertos, mas preserva a conexão manual por IP:porta como fallback.
 
 ## Validação obrigatória no HY300
 
@@ -17,7 +17,11 @@ Antes de testar o fluxo completo:
 2. Em um PC, valide `adb shell input keyevent 3` e `adb shell input text teste` com um campo de texto aberto.
 3. Confirme a existência de **Depuração sem fio**. Só então configure Shizuku e habilite a implementação da ponte.
 
-Sem overlay, o app ainda pode enviar gestos, mas não há cursor visível. HOME/BACK usam uma ação global do serviço de acessibilidade. POWER e volume continuam dependentes de Shizuku; texto possui um fallback via `ACTION_SET_TEXT`, que só funciona quando o app alvo expõe campo editável.
+Sem overlay, o app ainda pode enviar gestos, mas não há cursor visível. HOME/BACK usam uma ação global do serviço de acessibilidade. POWER, volume e eventos de tecla usam Shizuku quando autorizado. Texto usa `input text` via Shizuku e tem fallback `ACTION_SET_TEXT`, que só funciona quando o app alvo expõe campo editável.
+
+## Limitações de validação
+
+O CI compila os dois APKs a cada push. Não substitui os testes no projetor: execute os testes de overlay, ADB e Wireless Debugging antes de liberar o app para uso diário. A compatibilidade final de Shizuku e do overlay depende da ROM do HY300.
 
 ## Uso
 

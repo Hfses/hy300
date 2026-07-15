@@ -1,0 +1,39 @@
+package com.hy300.remote.server
+
+import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
+import android.graphics.Color
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.view.View
+import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
+import kotlin.math.sqrt
+
+class RemoteAccessibilityService : AccessibilityService() {
+    private lateinit var windows: WindowManager
+    private var cursor: View? = null
+    private var x = 0f; private var y = 0f
+    override fun onServiceConnected() { instance = this; windows = getSystemService(WINDOW_SERVICE) as WindowManager }
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+    override fun onInterrupt() = Unit
+    override fun onDestroy() { removeCursor(); instance = null; super.onDestroy() }
+    fun move(dx: Float, dy: Float) {
+        val d = sqrt(dx * dx + dy * dy); val m = if (d > 25) 2.5f else 1f
+        val display = resources.displayMetrics
+        x = (x + dx * m).coerceIn(0f, display.widthPixels.toFloat()); y = (y + dy * m).coerceIn(0f, display.heightPixels.toFloat())
+        showCursor(); updateCursor()
+    }
+    fun tap(longPress: Boolean = false) { gesture(x, y, if (longPress) 650 else 40) }
+    fun scroll(delta: Float) { gesture(x, y, 0, x, (y + delta).coerceIn(0f, resources.displayMetrics.heightPixels.toFloat()), 180) }
+    fun sync() = floatArrayOf(x, y, resources.displayMetrics.widthPixels.toFloat(), resources.displayMetrics.heightPixels.toFloat())
+    private fun gesture(x1: Float, y1: Float, duration: Long, x2: Float = x1, y2: Float = y1, endDuration: Long = duration) {
+        val path = Path().apply { moveTo(x1, y1); lineTo(x2, y2) }
+        dispatchGesture(GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(path, 0, maxOf(duration, endDuration))).build(), null, null)
+    }
+    private fun showCursor() { if (cursor != null) return; cursor = View(this).apply { setBackgroundColor(Color.WHITE) }; windows.addView(cursor, params()) }
+    private fun updateCursor() { cursor?.let { windows.updateViewLayout(it, params()) } }
+    private fun params() = WindowManager.LayoutParams(20, 20, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, PixelFormat.TRANSLUCENT).apply { this.x = x.toInt(); this.y = y.toInt() }
+    fun removeCursor() { cursor?.let { windows.removeView(it) }; cursor = null }
+    companion object { @Volatile var instance: RemoteAccessibilityService? = null }
+}

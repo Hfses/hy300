@@ -1,9 +1,11 @@
 # HY300 Remote MVP
 
-Dois aplicativos Android na mesma rede local:
+São dois APKs independentes na mesma rede local:
 
-- `server`: instalar no HY300. Mantém o WebSocket, exibe um cursor virtual e despacha toques pelo Accessibility Service.
-- `client`: instalar no telefone. Conecta por IP:porta, faz pareamento e oferece touchpad e atalhos.
+| Módulo / APK | Nome exibido | Instalação | Função |
+| --- | --- | --- | --- |
+| `client` / `client-debug.apk` | **HY300 Controller** | Celular Android | Touchpad, teclado, atalhos, descoberta e pareamento. |
+| `server` / `server-debug.apk` | **HY300 Receiver** | Projetor HY300 | WebSocket, Accessibility Service, cursor virtual e Shizuku. |
 
 ## Estado deste repositório
 

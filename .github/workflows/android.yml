@@ -19,3 +19,13 @@ jobs:
           gradle-version: '8.7'
       - name: Build debug APKs
         run: gradle :server:assembleDebug :client:assembleDebug
+      - name: Upload controller APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hy300-controller-debug
+          path: client/build/outputs/apk/debug/client-debug.apk
+      - name: Upload receiver APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: hy300-receiver-debug
+          path: server/build/outputs/apk/debug/server-debug.apk

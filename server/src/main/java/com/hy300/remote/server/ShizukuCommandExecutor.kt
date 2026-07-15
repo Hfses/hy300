@@ -17,6 +17,22 @@ class ShizukuCommandExecutor(private val context: Context) {
     }
     fun keyEvent(keyCode: Int): Boolean = keyCode in 0..300 && shell("input keyevent $keyCode")
     fun text(text: String): Boolean = text.isNotBlank() && shell("input text ${shellQuote(text)}")
-    private fun shell(command: String): Boolean = runCatching { val p = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null); p.waitFor() == 0 }.getOrDefault(false)
+    private fun shell(command: String): Boolean = runCatching {
+        val method = newProcessMethod ?: return false
+        val process = method.invoke(null, arrayOf("sh", "-c", command), null, null) as Process
+        process.waitFor() == 0
+    }.getOrDefault(false)
+
+    private companion object {
+        // Shizuku.newProcess is private in API 13.x; reflection is the documented workaround.
+        val newProcessMethod: java.lang.reflect.Method? = runCatching {
+            Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java,
+            ).apply { isAccessible = true }
+        }.getOrNull()
+    }
     private fun shellQuote(value: String) = "'" + value.replace("'", "'\\\"'\\\"'").replace(" ", "%s") + "'"
 }

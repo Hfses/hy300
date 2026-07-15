@@ -8,6 +8,8 @@ import android.graphics.PixelFormat
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+import android.os.Bundle
 import kotlin.math.sqrt
 
 class RemoteAccessibilityService : AccessibilityService() {
@@ -27,6 +29,17 @@ class RemoteAccessibilityService : AccessibilityService() {
     fun tap(longPress: Boolean = false) { gesture(x, y, if (longPress) 650 else 40) }
     fun scroll(delta: Float) { gesture(x, y, 0, x, (y + delta).coerceIn(0f, resources.displayMetrics.heightPixels.toFloat()), 180) }
     fun sync() = floatArrayOf(x, y, resources.displayMetrics.widthPixels.toFloat(), resources.displayMetrics.heightPixels.toFloat())
+    fun global(key: String): Boolean = when (key) {
+        "HOME" -> performGlobalAction(GLOBAL_ACTION_HOME)
+        "BACK" -> performGlobalAction(GLOBAL_ACTION_BACK)
+        "RECENTS" -> performGlobalAction(GLOBAL_ACTION_RECENTS)
+        else -> false
+    }
+    /** Fallback for ordinary text when Shizuku is unavailable; depends on the focused app exposing ACTION_SET_TEXT. */
+    fun setFocusedText(text: String): Boolean {
+        val node = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return false
+        return node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text) })
+    }
     private fun gesture(x1: Float, y1: Float, duration: Long, x2: Float = x1, y2: Float = y1, endDuration: Long = duration) {
         val path = Path().apply { moveTo(x1, y1); lineTo(x2, y2) }
         dispatchGesture(GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(path, 0, maxOf(duration, endDuration))).build(), null, null)

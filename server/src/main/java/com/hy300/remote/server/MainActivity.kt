@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
         Text("Código de pareamento: ${RemoteServerService.currentPairCode}", style = MaterialTheme.typography.titleLarge)
         Text("WebSocket: porta 7300 • anúncio NSD ativo")
         Text("Acessibilidade: ${if (RemoteAccessibilityService.instance == null) "desativada" else "ativa"}")
+        Button({ RemoteAccessibilityService.instance?.showOverlayTest() }, enabled = RemoteAccessibilityService.instance != null) { Text("Testar cursor/overlay") }
         Text("Shizuku: ${if (shizuku) "autorizado" else "não autorizado"}")
         if (!shizuku) Button({ ShizukuCommandExecutor(activity).requestAccess() }) { Text("Solicitar acesso ao Shizuku") }
         Text("Ative o serviço em Configurações > Acessibilidade antes de conectar um celular.")

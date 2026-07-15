@@ -32,6 +32,7 @@ class RemoteAccessibilityService : AccessibilityService() {
         showCursor(); updateCursor()
         }
     }
+    fun showOverlayTest() { main.post { x = resources.displayMetrics.widthPixels / 2f; y = resources.displayMetrics.heightPixels / 2f; showCursor(); updateCursor() } }
     fun tap(longPress: Boolean = false) { main.post { gesture(x, y, if (longPress) 650 else 40) } }
     fun scroll(delta: Float) { main.post { gesture(x, y, 0, x, (y + delta).coerceIn(0f, resources.displayMetrics.heightPixels.toFloat()), 180) } }
     fun sync() = floatArrayOf(x, y, resources.displayMetrics.widthPixels.toFloat(), resources.displayMetrics.heightPixels.toFloat())
